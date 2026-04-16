@@ -18,4 +18,11 @@ return [
         'path' => __DIR__ . '/../../database/database.sqlite',
     ]
 ];
+$localConfigFile = __DIR__ . '/config.local.php';
+if (file_exists($localConfigFile)) {
+    $localConfig = require $localConfigFile;
+    $config = array_merge($config, $localConfig);
+}
+
+return $config;
 ?>
