@@ -1,4 +1,5 @@
 <?php
+// backend/models/Anggota.php
 require_once __DIR__ . '/../config/Database.php';
 
 class Anggota {
@@ -14,9 +15,36 @@ class Anggota {
     public function __construct() {
         $database = new Database();
         $this->conn = $database->getConnection();
+        // Buat tabel jika belum ada (self-contained, berfungsi untuk SQLite dan MySQL)
+        $this->createTableIfNotExists();
     }
 
-    // READ all with optional search & pagination
+    private function createTableIfNotExists() {
+        // Cek tipe database dari konfigurasi
+        $config = require __DIR__ . '/../config/config.php';
+        if ($config['DB_TYPE'] === 'mysql') {
+            $query = "CREATE TABLE IF NOT EXISTS " . $this->table_name . " (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nama VARCHAR(100) NOT NULL,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                no_hp VARCHAR(15) NOT NULL,
+                alamat TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+        } else {
+            // SQLite
+            $query = "CREATE TABLE IF NOT EXISTS " . $this->table_name . " (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nama TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                no_hp TEXT NOT NULL,
+                alamat TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )";
+        }
+        $this->conn->exec($query);
+    }
+
     public function read($search = '', $page = 1, $limit = 5) {
         $offset = ($page - 1) * $limit;
         $query = "SELECT * FROM " . $this->table_name;
@@ -40,7 +68,6 @@ class Anggota {
         return $stmt;
     }
 
-    // Count total for pagination
     public function count($search = '') {
         $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
         $params = [];
@@ -59,9 +86,9 @@ class Anggota {
         return $row['total'];
     }
 
-    // CREATE
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . " SET nama=:nama, email=:email, no_hp=:no_hp, alamat=:alamat";
+        $query = "INSERT INTO " . $this->table_name . " (nama, email, no_hp, alamat) 
+                  VALUES (:nama, :email, :no_hp, :alamat)";
         $stmt = $this->conn->prepare($query);
 
         $this->nama = htmlspecialchars(strip_tags($this->nama));
@@ -74,17 +101,13 @@ class Anggota {
         $stmt->bindParam(":no_hp", $this->no_hp);
         $stmt->bindParam(":alamat", $this->alamat);
 
-        if ($stmt->execute()) {
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
-    // READ one
     public function readOne() {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
+        $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -98,40 +121,33 @@ class Anggota {
         return false;
     }
 
-    // UPDATE
     public function update() {
-        $query = "UPDATE " . $this->table_name . " SET nama=:nama, email=:email, no_hp=:no_hp, alamat=:alamat WHERE id=:id";
+        $query = "UPDATE " . $this->table_name . " 
+                  SET nama = :nama, email = :email, no_hp = :no_hp, alamat = :alamat 
+                  WHERE id = :id";
         $stmt = $this->conn->prepare($query);
 
         $this->nama = htmlspecialchars(strip_tags($this->nama));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->no_hp = htmlspecialchars(strip_tags($this->no_hp));
         $this->alamat = htmlspecialchars(strip_tags($this->alamat));
-        $this->id = htmlspecialchars(strip_tags($this->id));
+        $this->id = (int)$this->id;
 
         $stmt->bindParam(":nama", $this->nama);
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":no_hp", $this->no_hp);
         $stmt->bindParam(":alamat", $this->alamat);
-        $stmt->bindParam(":id", $this->id);
+        $stmt->bindParam(":id", $this->id, PDO::PARAM_INT);
 
-        if ($stmt->execute()) {
-            return true;
-        }
-        return false;
+        return $stmt->execute();
     }
 
-    // DELETE
     public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
         $stmt = $this->conn->prepare($query);
-        $this->id = htmlspecialchars(strip_tags($this->id));
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
-            return true;
-        }
-        return false;
+        $this->id = (int)$this->id;
+        $stmt->bindParam(":id", $this->id, PDO::PARAM_INT);
+        return $stmt->execute();
     }
 }
 ?>

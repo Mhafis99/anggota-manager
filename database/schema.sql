@@ -16,3 +16,13 @@ CREATE TABLE IF NOT EXISTS anggota (
 INSERT INTO anggota (nama, email, no_hp, alamat) VALUES
 ('Budi Santoso', 'budi@email.com', '081234567890', 'Jl. Melati No. 12, Jakarta'),
 ('Siti Aminah', 'siti@email.com', '081298765432', 'Jl. Anggrek No. 5, Bandung');
+
+-- SQLite schema (untuk referensi)
+CREATE TABLE anggota (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nama TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    no_hp TEXT NOT NULL,
+    alamat TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
